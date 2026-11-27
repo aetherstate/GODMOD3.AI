@@ -5,6 +5,12 @@
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
+/** Chat completions URL for an OpenAI-compatible base URL (e.g. https://api.example.com/v1), or OpenRouter if empty. */
+export function chatCompletionsUrl(baseUrl?: string): string {
+  const base = baseUrl?.trim().replace(/\/+$/, '')
+  return base ? `${base}/chat/completions` : OPENROUTER_API_URL
+}
+
 /**
  * Maps API error responses to specific, actionable user-facing messages.
  */
@@ -63,6 +69,8 @@ interface SendMessageOptions {
   messages: Message[]
   model: string
   apiKey: string
+  /** OpenAI-compatible base URL (any provider); empty means OpenRouter */
+  baseUrl?: string
   noLog?: boolean
   signal?: AbortSignal
   temperature?: number
@@ -98,6 +106,7 @@ export async function sendMessage({
   messages,
   model,
   apiKey,
+  baseUrl,
   noLog = false,
   signal,
   temperature = 0.7,
@@ -131,7 +140,8 @@ export async function sendMessage({
   const providerOptions: Record<string, unknown> = {}
 
   // Handle no-log mode for supported providers
-  if (noLog) {
+  // `provider` is OpenRouter-only; strict OpenAI-compatible APIs reject unknown fields
+  if (noLog && !baseUrl) {
     // OpenRouter passes through provider preferences
     providerOptions['allow_fallbacks'] = false
   }
@@ -140,7 +150,7 @@ export async function sendMessage({
     body.provider = providerOptions
   }
 
-  const response = await fetch(OPENROUTER_API_URL, {
+  const response = await fetch(chatCompletionsUrl(baseUrl), {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -174,6 +184,7 @@ export async function* streamMessage({
   messages,
   model,
   apiKey,
+  baseUrl,
   noLog = false,
   signal,
   temperature = 0.7,
@@ -202,7 +213,7 @@ export async function* streamMessage({
   if (presence_penalty !== undefined) streamBody.presence_penalty = presence_penalty
   if (repetition_penalty !== undefined) streamBody.repetition_penalty = repetition_penalty
 
-  const response = await fetch(OPENROUTER_API_URL, {
+  const response = await fetch(chatCompletionsUrl(baseUrl), {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
