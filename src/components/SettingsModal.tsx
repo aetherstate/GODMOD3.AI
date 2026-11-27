@@ -212,7 +212,9 @@ function TabButton({
 }
 
 function APIKeyTab() {
-  const { apiKey, setApiKey } = useStore()
+  const { apiKey, setApiKey, apiBaseUrl, setApiBaseUrl, apiModel, setApiModel } = useStore()
+  const [localBaseUrl, setLocalBaseUrl] = useState(apiBaseUrl)
+  const [localModel, setLocalModel] = useState(apiModel)
   const [showKey, setShowKey] = useState(false)
   const [localKey, setLocalKey] = useState(apiKey)
   const [saved, setSaved] = useState(false)
@@ -268,6 +270,41 @@ function APIKeyTab() {
             {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
+      </div>
+
+      <div className="pt-4 border-t border-theme-primary/30 space-y-3">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Custom Provider (optional)</h3>
+          <p className="text-sm theme-secondary">
+            Use any OpenAI-compatible API instead of OpenRouter. Enter its base URL
+            (the part before <code>/chat/completions</code>) and put that provider&apos;s key above.
+            Leave empty to use OpenRouter. ULTRAPLINIAN and CONSORTIUM stay OpenRouter-only.
+          </p>
+        </div>
+        <label className="block text-sm">
+          Base URL
+          <input
+            type="url"
+            value={localBaseUrl}
+            onChange={(e) => setLocalBaseUrl(e.target.value)}
+            onBlur={() => { if (localBaseUrl.trim() !== apiBaseUrl) setApiBaseUrl(localBaseUrl.trim()) }}
+            placeholder="https://api.example.com/v1"
+            className="mt-1 w-full px-4 py-3 bg-theme-dim border border-theme-primary rounded-lg
+              focus:outline-none focus:glow-box"
+          />
+        </label>
+        <label className="block text-sm">
+          Model ID (overrides the model selector for this provider)
+          <input
+            type="text"
+            value={localModel}
+            onChange={(e) => setLocalModel(e.target.value)}
+            onBlur={() => { if (localModel.trim() !== apiModel) setApiModel(localModel.trim()) }}
+            placeholder="e.g. gpt-4o-mini"
+            className="mt-1 w-full px-4 py-3 bg-theme-dim border border-theme-primary rounded-lg
+              focus:outline-none focus:glow-box"
+          />
+        </label>
       </div>
 
       <p className="text-xs theme-secondary">

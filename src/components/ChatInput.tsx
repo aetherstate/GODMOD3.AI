@@ -19,6 +19,8 @@ export function ChatInput() {
     addMessage,
     updateMessageContent,
     apiKey,
+    apiBaseUrl,
+    apiModel,
     isStreaming,
     setIsStreaming,
     personas,
@@ -204,7 +206,8 @@ export function ChatInput() {
     // Regex runs instantly as fallback; LLM classifier fires in parallel
     // with the main model call and overwrites with a more accurate result.
     let promptClassification: ClassificationResult = classifyPrompt(userMessage)
-    const llmClassifyPromise = apiKey
+    // Classifier calls OpenRouter directly, so never send a custom provider's key there
+    const llmClassifyPromise = apiKey && !apiBaseUrl
       ? classifyWithLLM(userMessage, apiKey).then(result => { promptClassification = result })
       : Promise.resolve()
 
@@ -231,7 +234,7 @@ export function ChatInput() {
       abortControllerRef.current = new AbortController()
 
       // ── CONSORTIUM PATH: Hive-mind synthesis ──────────────────────
-      if (consortiumEnabled && ultraplinianApiUrl && ultraplinianApiKey && !ultraplinianEnabled) {
+      if (!apiBaseUrl && consortiumEnabled && ultraplinianApiUrl && ultraplinianApiKey && !ultraplinianEnabled) {
         const assistantMsgId = addMessage(currentConversationId, {
           role: 'assistant',
           content: '',
@@ -311,7 +314,7 @@ export function ChatInput() {
       }
 
       // ── ULTRAPLINIAN PATH: Multi-model race with liquid response ──
-      if (ultraplinianEnabled && ultraplinianApiUrl && ultraplinianApiKey) {
+      if (!apiBaseUrl && ultraplinianEnabled && ultraplinianApiUrl && ultraplinianApiKey) {
         // Add placeholder assistant message that we'll update live
         const assistantMsgId = addMessage(currentConversationId, {
           role: 'assistant',
@@ -471,8 +474,9 @@ export function ChatInput() {
             })
           : await sendMessage({
               messages,
-              model,
+              model: (apiBaseUrl && apiModel.trim()) || model,
               apiKey,
+              baseUrl: apiBaseUrl,
               noLog: noLogMode,
               signal: abortControllerRef.current.signal,
               ...(tuneResult ? {
